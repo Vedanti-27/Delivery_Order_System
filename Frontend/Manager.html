@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spice Hub Express — Manager</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --maroon:#651C22; --maroon-dark:#4A1319; --saffron:#E7A93C; --saffron-dark:#C98A22;
+  --cream:#FBF6EC; --card:#FFFFFF; --ink:#2B211C; --ink-soft:#6b5f57; --line:#E9DFCF; --teal:#1F6F6F;
+  --st-green:#1E8E5A; --st-red:#D64545; --st-yellow:#C9911A; --st-blue:#2563EB; --st-orange:#EA7317; --st-purple:#7C4DFF;
+}
+*{box-sizing:border-box;}
+body{background:var(--cream);color:var(--ink);font-family:'Inter',sans-serif;padding-bottom:60px;}
+h1,h2,h3,h4,.display-font{font-family:'Fraunces',serif;color:var(--maroon-dark);}
+.mono{font-family:'JetBrains Mono',monospace;}
+.topbar{background:linear-gradient(120deg,var(--maroon) 0%,var(--maroon-dark) 100%);color:#fff;padding:14px 24px;position:sticky;top:0;z-index:1000;box-shadow:0 4px 18px rgba(0,0,0,.18);}
+.topbar .brand{font-family:'Fraunces',serif;font-weight:700;font-size:1.35rem;display:flex;align-items:center;gap:10px;}
+.brand .fa-pepper-hot{color:var(--saffron);}
+.status-pill{border-radius:30px;padding:6px 16px;font-weight:700;font-size:.82rem;letter-spacing:.03em;display:inline-flex;align-items:center;gap:6px;}
+.status-pill.open{background:rgba(30,142,90,.18);color:#9be8bf;border:1px solid rgba(30,142,90,.5);}
+.status-pill.closed{background:rgba(214,69,69,.18);color:#ffb3b3;border:1px solid rgba(214,69,69,.5);}
+.section-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:22px;box-shadow:0 2px 10px rgba(101,28,34,.05);}
+.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;font-weight:700;color:var(--teal);margin-bottom:4px;}
+.stat-card{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--saffron);border-radius:12px;padding:14px 16px;height:100%;}
+.stat-card .num{font-family:'Fraunces',serif;font-size:1.9rem;font-weight:700;color:var(--maroon-dark);line-height:1;}
+.stat-card .lbl{font-size:.78rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;margin-top:4px;}
+.stat-card.green{border-left-color:var(--st-green);} .stat-card.red{border-left-color:var(--st-red);}
+.stat-card.yellow{border-left-color:var(--st-yellow);} .stat-card.blue{border-left-color:var(--st-blue);}
+.stat-card.orange{border-left-color:var(--st-orange);} .stat-card.purple{border-left-color:var(--st-purple);}
+.badge-status{border-radius:20px;padding:5px 12px;font-weight:700;font-size:.72rem;letter-spacing:.03em;display:inline-flex;align-items:center;gap:5px;}
+.badge-status.PENDING,.badge-status.WAITING{background:#FCEFD2;color:var(--st-yellow);}
+.badge-status.PREPARING,.badge-status.READY{background:#EDE6FF;color:var(--st-purple);}
+.badge-status.ASSIGNED{background:#DCE7FF;color:var(--st-blue);}
+.badge-status.OUT_FOR_DELIVERY{background:#FDE6D2;color:var(--st-orange);}
+.badge-status.DELIVERED{background:#DCF3E6;color:var(--st-green);}
+.badge-status.CANCELLED{background:#FBE0E0;color:var(--st-red);}
+.badge-status.AVAILABLE{background:#DCF3E6;color:var(--st-green);}
+.badge-status.BUSY{background:#FBE0E0;color:var(--st-red);}
+.badge-status.OPEN{background:#DCF3E6;color:var(--st-green);}
+.badge-status.CLOSED{background:#FBE0E0;color:var(--st-red);}
+.map-box{height:380px;border-radius:14px;overflow:hidden;border:1px solid var(--line);}
+.table thead th{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);border-bottom:2px solid var(--line);white-space:nowrap;}
+.table td{vertical-align:middle;font-size:.88rem;}
+.table-card{max-height:420px;overflow:auto;}
+.btn-brand{background:var(--maroon);border-color:var(--maroon);color:#fff;font-weight:600;}
+.btn-brand:hover{background:var(--maroon-dark);border-color:var(--maroon-dark);color:#fff;}
+.btn-saffron{background:var(--saffron);border-color:var(--saffron-dark);color:var(--maroon-dark);font-weight:700;}
+.btn-saffron:hover{background:var(--saffron-dark);color:#fff;}
+.driver-chip{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;background:#fff;}
+.small-note{font-size:.76rem;color:var(--ink-soft);}
+.pill-filter{border-radius:20px;font-size:.82rem;}
+#toastHost{position:fixed;top:80px;right:18px;z-index:2000;width:320px;}
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--maroon) 0%,var(--maroon-dark) 55%,#2c0d10 100%);padding:24px;}
+.auth-card{background:#fff;border-radius:20px;padding:32px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.auth-brand{font-family:'Fraunces',serif;font-weight:700;font-size:1.4rem;color:var(--maroon-dark);display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.auth-brand .fa-pepper-hot{color:var(--saffron-dark);}
+.auth-sub{color:var(--ink-soft);font-size:.9rem;margin-bottom:20px;}
+.auth-error{color:var(--st-red);font-size:.82rem;min-height:18px;margin-top:6px;}
+.auth-hint{font-size:.78rem;color:var(--ink-soft);margin-top:8px;}
+.auth-hint a{color:var(--teal);cursor:pointer;}
+.creds-box{margin-top:14px;background:var(--cream);border:1px dashed var(--saffron-dark);border-radius:10px;padding:10px 12px;font-size:.82rem;color:var(--maroon-dark);}
+.device-block{text-align:center;padding:60px 20px;}
+.device-block i{font-size:3rem;color:var(--maroon);margin-bottom:14px;}
+.device-block p{color:var(--ink-soft);max-width:440px;margin:0 auto 16px;}
+</style>
+</head>
+<body>
+
+<div class="auth-wrap" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-brand"><i class="fa-solid fa-pepper-hot"></i> Spice Hub Express</div>
+    <p class="auth-sub">Manager sign in</p>
+    <label class="form-label fw-semibold">Manager ID</label>
+    <input type="text" id="loginMgrId" class="form-control mb-2" placeholder="MGR01">
+    <label class="form-label fw-semibold">Password</label>
+    <input type="password" id="loginMgrPass" class="form-control mb-2" placeholder="••••••••">
+    <button class="btn btn-brand w-100" id="btnMgrLogin"><i class="fa-solid fa-right-to-bracket me-1"></i>Sign in</button>
+    <div class="auth-error" id="mgrLoginErr"></div>
+    <div class="auth-hint"><a id="showMgrCreds">Show demo manager credentials</a></div>
+    <div id="credsBox" class="creds-box d-none"></div>
+  </div>
+</div>
+
+<div id="mainApp" style="display:none;">
+<div class="topbar d-flex align-items-center justify-content-between flex-wrap gap-2">
+  <div class="brand"><i class="fa-solid fa-pepper-hot"></i> Spice Hub Express — Manager</div>
+  <button id="logoutBtn" class="btn btn-sm btn-outline-light"><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</button>
+</div>
+<div id="toastHost"></div>
+
+<div id="managerDeviceBlock" class="device-block d-none">
+  <i class="fa-solid fa-desktop"></i>
+  <h4>Desktop required</h4>
+  <p>The Manager Dashboard is built for a desktop computer and isn't available on phones or tablets. Please open Spice Hub Express on a desktop or laptop.</p>
+  <button class="btn btn-sm btn-outline-secondary" id="mgrBypass">Continue anyway (testing)</button>
+</div>
+
+<div id="managerContent" class="p-3 p-md-4">
+
+  <div class="section-card d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <div class="eyebrow">Restaurant control</div>
+      <h4 class="mb-0">Spice Hub Central Kitchen</h4>
+      <span id="mgrStatusBadge" class="badge-status OPEN mt-2 d-inline-flex"></span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-outline-success" id="btnOpenRest"><i class="fa-solid fa-door-open me-1"></i>Open Restaurant</button>
+      <button class="btn btn-outline-danger" id="btnCloseRest"><i class="fa-solid fa-door-closed me-1"></i>Close Restaurant</button>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-1" id="statGrid"></div>
+
+  <div class="section-card mt-4">
+    <div class="eyebrow">Demo controls</div>
+    <h5 class="mb-3">Simulate the flow</h5>
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-saffron btn-sm" id="btnGenOrder"><i class="fa-solid fa-plus me-1"></i>Generate Order</button>
+      <button class="btn btn-outline-secondary btn-sm" id="btnStartPrep"><i class="fa-solid fa-fire-burner me-1"></i>Start Preparing</button>
+      <button class="btn btn-outline-secondary btn-sm" id="btnMarkReady"><i class="fa-solid fa-bell-concierge me-1"></i>Mark Food Ready</button>
+      <button class="btn btn-outline-primary btn-sm" id="btnAssignNext"><i class="fa-solid fa-route me-1"></i>Assign Next Group</button>
+      <button class="btn btn-outline-warning btn-sm" id="btnCompleteDelivery"><i class="fa-solid fa-flag-checkered me-1"></i>Complete Delivery</button>
+      <button class="btn btn-outline-danger btn-sm" id="btnReset"><i class="fa-solid fa-rotate-left me-1"></i>Reset Simulation</button>
+    </div>
+  </div>
+
+  <div class="section-card mt-4">
+    <div class="eyebrow">Live map</div>
+    <h5 class="mb-3">Restaurant · Drivers · Orders</h5>
+    <div id="managerMap" class="map-box"></div>
+    <div class="small-note mt-2"><i class="fa-solid fa-circle" style="color:var(--st-green)"></i> Available driver &nbsp; <i class="fa-solid fa-circle" style="color:var(--st-red)"></i> Busy driver &nbsp; <i class="fa-solid fa-circle" style="color:var(--st-yellow)"></i> Ready orders &nbsp; <i class="fa-solid fa-circle" style="color:var(--maroon)"></i> Restaurant</div>
+  </div>
+
+  <div class="row g-4 mt-1">
+    <div class="col-lg-7">
+      <div class="section-card">
+        <div class="eyebrow">Incoming orders</div>
+        <h5 class="mb-3">Order queue</h5>
+        <div class="table-card">
+          <table class="table table-hover align-middle">
+            <thead><tr><th>Order ID</th><th>Customer</th><th>Area / Road</th><th>Items</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="incomingOrdersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="section-card">
+        <div class="eyebrow">Ready for dispatch</div>
+        <h5 class="mb-3">Area / Road groups</h5>
+        <div id="groupedOrders" class="table-card"></div>
+      </div>
+      <div class="section-card">
+        <div class="eyebrow">FIFO</div>
+        <h5 class="mb-3">Waiting queue</h5>
+        <div id="waitingQueueBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="eyebrow">Fleet</div>
+    <h5 class="mb-3">All <span id="fleetCount"></span> drivers</h5>
+    <div class="table-card">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Assigned Area/Road</th><th>Orders</th></tr></thead>
+        <tbody id="fleetBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="eyebrow">Customer database</div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <h5 class="mb-0"><span id="custCount"></span> customers</h5>
+      <div class="d-flex gap-2 flex-wrap">
+        <input id="custQ" class="form-control form-control-sm" style="width:220px" placeholder="Search name or ID">
+        <select id="custAreaFilter" class="form-select form-select-sm pill-filter" style="width:170px"></select>
+      </div>
+    </div>
+    <div class="table-card">
+      <table class="table table-sm align-middle">
+        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Area</th><th>Road</th><th>Orders</th></tr></thead>
+        <tbody id="custTableBody"></tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-2">
+      <span class="small-note" id="custPageInfo"></span>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-outline-secondary" id="custPrev"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="btn btn-sm btn-outline-secondary" id="custNext"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ===================== Shared constants ===================== */
+const STORE_KEY = "spicehub_store";
+const PUNE_AREAS = {
+  "Hinjewadi":{lat:18.5250,lng:73.8570,roads:["Phase 1 Road","Phase 2 Road","Wakad Link Road"]},
+  "Baner":{lat:18.5298,lng:73.8689,roads:["Baner Road","Sus Road","High Street Rd"]},
+  "Pimpri":{lat:18.5252,lng:73.8528,roads:["Old Mumbai Road","PCMC Chowk Rd"]},
+  "Hadapsar":{lat:18.5248,lng:73.8624,roads:["Solapur Road","Magarpatta Road"]},
+  "Kothrud":{lat:18.5134,lng:73.8541,roads:["Karve Road","Paud Road","DP Road"]},
+  "Shivajinagar":{lat:18.5225,lng:73.8614,roads:["FC Road","JM Road","Ghole Road"]},
+  "Viman Nagar":{lat:18.5260,lng:73.8594,roads:["Viman Nagar Road","Airport Road"]},
+  "Wagholi":{lat:18.5480,lng:73.8517,roads:["Nagar Road","Kesnand Road"]},
+  "Kharadi":{lat:18.5246,lng:73.8513,roads:["Kharadi Bypass","EON Road"]},
+  "Aundh":{lat:18.5176,lng:73.8531,roads:["Aundh Road","ITI Road"]}
+};
+const FOOD_ITEMS=[
+ {id:"pizza",name:"Pizza (Margherita)",price:293},{id:"burger",name:"Burger (Classic)",price:288},
+ {id:"fchicken",name:"Fried Chicken",price:268},{id:"koshary",name:"Koshary Special",price:261},
+ {id:"pasta",name:"Pasta (Penne)",price:229},{id:"salad",name:"Salad (Fresh Garden)",price:274},
+ {id:"sandwich",name:"Club Sandwich",price:235},{id:"shawarma",name:"Shawarma Special",price:270},
+ {id:"sushi",name:"Sushi Roll",price:273},{id:"paneer",name:"Paneer Tikka",price:219},
+ {id:"vbir",name:"Veg Biryani",price:189},{id:"cbir",name:"Chicken Biryani",price:239},
+ {id:"idli",name:"Idli Sambhar",price:149},{id:"dosa",name:"Masala Dosa",price:179},
+ {id:"vpulao",name:"Veg Pulao",price:199},{id:"dal",name:"Dal Tadka",price:179},
+ {id:"chole",name:"Chole Bhature",price:209},{id:"momos",name:"Veg Momos",price:159},
+ {id:"cmomos",name:"Chicken Momos",price:189},{id:"tikka",name:"Chicken Tikka",price:289},
+ {id:"kebab",name:"Seekh Kebab",price:299},{id:"fish",name:"Fish Curry",price:309},
+ {id:"prawns",name:"Prawn Masala",price:329},{id:"noodles",name:"Veg Hakka Noodles",price:189},
+ {id:"manchurian",name:"Veg Manchurian",price:199},{id:"friedrice",name:"Chicken Fried Rice",price:219},
+ {id:"softdrink",name:"Soft Drink",price:60},{id:"lassi",name:"Sweet Lassi",price:89},
+ {id:"gulab",name:"Gulab Jamun (2 pc)",price:79},{id:"icecream",name:"Ice Cream Sundae",price:129},
+ {id:"thali",name:"Spice Hub Thali",price:349}
+];
+const FIRST_NAMES=["Aarav","Vivaan","Aditya","Ishaan","Reyansh","Krishna","Arjun","Sai","Rohan","Kabir","Aanya","Diya","Myra","Anika","Ira","Saanvi","Aadhya","Kiara","Riya","Prisha","Rahul","Sanjay","Vikram","Aditi","Neha","Pooja","Meera","Kavya","Rutuja","Sneha"];
+const LAST_NAMES=["Sharma","Patil","Deshmukh","Kulkarni","Joshi","Kale","Bhosale","Pawar","Gaikwad","Shinde"];
+const DRIVER_NAMES=["Rajesh Pawar","Suresh Jadhav","Mahesh Kale","Ganesh Shinde","Vikas Bhosale","Ramesh Gaikwad","Ajay Kulkarni","Sandeep Deshmukh","Prakash Salunkhe","Dinesh Chavan"];
+const MANAGER={id:"MGR01",password:"Manager@123",name:"Store Manager"};
+const RESTAURANT={name:"Spice Hub Central Kitchen",area:"Shivajinagar",lat:18.5204,lng:73.8567};
+const CUSTOMER_COUNT=250;
+
+function roadCoord(area,road){
+  const base=PUNE_AREAS[area]||PUNE_AREAS["Shivajinagar"];
+  const idx=base.roads.indexOf(road);
+  const lat=base.lat+(idx*0.0016)-0.0009+(Math.random()-0.5)*0.0009;
+  const lng=base.lng+(idx*0.0016)-0.0009+(Math.random()-0.5)*0.0009;
+  return {lat:+lat.toFixed(4),lng:+lng.toFixed(4)};
+}
+function pad(n,w){return String(n).padStart(w,"0");}
+function groupKeyOf(area,road){return area+" | "+road;}
+function generateCustomers(){
+  const areaKeys=Object.keys(PUNE_AREAS); const list=[];
+  for(let i=1;i<=CUSTOMER_COUNT;i++){
+    const area=areaKeys[Math.floor(Math.random()*areaKeys.length)];
+    const roads=PUNE_AREAS[area].roads;
+    const road=roads[Math.floor(Math.random()*roads.length)];
+    const coord=roadCoord(area,road);
+    const fn=FIRST_NAMES[Math.floor(Math.random()*FIRST_NAMES.length)];
+    const ln=LAST_NAMES[Math.floor(Math.random()*LAST_NAMES.length)];
+    const idNum=Math.floor(1000+Math.random()*8999);
+    const email=(fn+"."+ln+idNum).toLowerCase()+"@example.com";
+    list.push({id:"U"+idNum,name:fn+" "+ln,email,area,road,lat:coord.lat,lng:coord.lng,phone:"98"+Math.floor(10000000+Math.random()*89999999)});
+  }
+  return list;
+}
+function generateDrivers(){
+  return DRIVER_NAMES.map((n,i)=>({id:"D"+pad(i+1,2),name:n,status:"AVAILABLE",groupKey:null,orderIds:[],
+    lat:RESTAURANT.lat+(Math.random()-0.5)*0.01, lng:RESTAURANT.lng+(Math.random()-0.5)*0.01}));
+}
+function freshStore(){
+  return {restaurantStatus:"OPEN",customers:generateCustomers(),drivers:generateDrivers(),orders:[],waitingQueue:[],orderCounter:1};
+}
+
+/* ===================== Persistent shared storage ===================== */
+async function loadStore(){
+  try{
+    const res=await window.storage.get(STORE_KEY,true);
+    if(res && res.value) return JSON.parse(res.value);
+  }catch(e){}
+  const init=freshStore();
+  try{ await window.storage.set(STORE_KEY, JSON.stringify(init), true); }catch(e){ console.error(e); }
+  return init;
+}
+async function saveStore(store){
+  try{ await window.storage.set(STORE_KEY, JSON.stringify(store), true); }catch(e){ console.error("Storage error", e); }
+}
+async function refreshStore(){
+  try{
+    const res=await window.storage.get(STORE_KEY,true);
+    if(res && res.value) STORE=JSON.parse(res.value);
+  }catch(e){}
+}
+
+let STORE=null;
+let custPage=1, custPerPage=15;
+let mgrBypass=false;
+let managerMap=null, mgrMarkers={restaurant:null, drivers:{}, orders:{}};
+
+function toast(msg,type){
+  type=type||"info";
+  const map={success:"success",danger:"danger",warning:"warning",info:"primary"};
+  const el=document.createElement("div");
+  el.className="toast align-items-center text-bg-"+(map[type]||"primary")+" border-0 mb-2";
+  el.setAttribute("role","alert");
+  el.innerHTML=`<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+  document.getElementById("toastHost").appendChild(el);
+  const t=new bootstrap.Toast(el,{delay:3200}); t.show();
+  el.addEventListener("hidden.bs.toast",()=>el.remove());
+}
+function isDesktopDevice(){
+  return !(/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) || window.innerWidth<=820);
+}
+function checkManagerDevice(){
+  const ok=mgrBypass||isDesktopDevice();
+  document.getElementById('managerDeviceBlock').classList.toggle('d-none', ok);
+  document.getElementById('managerContent').classList.toggle('d-none', !ok);
+}
+window.addEventListener('resize', checkManagerDevice);
+
+/* ===================== Core business logic ===================== */
+async function openRestaurant(){ await refreshStore(); STORE.restaurantStatus="OPEN"; await saveStore(STORE); toast("Restaurant is now <b>OPEN</b>","success"); renderAll(); }
+async function closeRestaurant(){ await refreshStore(); STORE.restaurantStatus="CLOSED"; await saveStore(STORE); toast("Restaurant is now <b>CLOSED</b>","danger"); renderAll(); }
+
+async function createOrder(customerId,itemIds){
+  await refreshStore();
+  if(STORE.restaurantStatus!=="OPEN"){ toast("Restaurant is currently closed. Order rejected.","danger"); return null; }
+  const cust=STORE.customers.find(c=>c.id===customerId);
+  if(!cust){ toast("Select a valid customer first.","danger"); return null; }
+  const coord=roadCoord(cust.area,cust.road);
+  const items=itemIds.map(id=>FOOD_ITEMS.find(f=>f.id===id));
+  const order={id:"ORD"+pad(STORE.orderCounter++,4),customerId:cust.id,customerName:cust.name,area:cust.area,road:cust.road,
+    lat:coord.lat,lng:coord.lng,items,time:Date.now(),status:"PENDING",driverId:null,driverName:null,groupKey:null};
+  STORE.orders.push(order);
+  await saveStore(STORE);
+  toast("Order placed! ID <b>"+order.id+"</b>","success");
+  renderAll();
+  return order;
+}
+async function startPreparing(orderId){
+  await refreshStore();
+  const o=STORE.orders.find(x=>x.id===orderId);
+  if(!o){ return; }
+  if(o.status!=="PENDING"){ toast("Order is not pending.","warning"); return; }
+  o.status="PREPARING";
+  await saveStore(STORE);
+  toast(o.id+" moved to PREPARING","info");
+  renderAll();
+}
+async function markOrderReady(orderId){
+  await refreshStore();
+  const o=STORE.orders.find(x=>x.id===orderId);
+  if(!o){ return; }
+  if(o.status!=="PREPARING"){ toast("Order must be PREPARING first.","warning"); return; }
+  o.status="READY";
+  o.groupKey=groupKeyOf(o.area,o.road);
+  await saveStore(STORE);
+  toast(o.id+" is READY — grouped by "+o.groupKey,"success");
+  renderAll();
+}
+function groupOrdersByRoad(){
+  const groups={};
+  STORE.orders.filter(o=>o.status==="READY").forEach(o=>{
+    const key=groupKeyOf(o.area,o.road);
+    if(!groups[key]) groups[key]=[];
+    groups[key].push(o);
+  });
+  return groups;
+}
+function validateAssignment(groupKey,driverId){
+  const driver=STORE.drivers.find(d=>d.id===driverId);
+  if(!driver) return {ok:false,msg:"Driver not found."};
+  if(driver.status!=="AVAILABLE") return {ok:false,msg:driver.name+" is BUSY. Cannot assign."};
+  const groups=groupOrdersByRoad();
+  const group=groups[groupKey];
+  if(!group||group.length===0) return {ok:false,msg:"No ready, unassigned orders in this group."};
+  const alreadyAssigned=group.some(o=>o.status!=="READY"||o.driverId);
+  if(alreadyAssigned) return {ok:false,msg:"Duplicate assignment blocked — order already assigned."};
+  return {ok:true,group,driver};
+}
+async function assignOrderGroup(groupKey,driverId){
+  await refreshStore();
+  const v=validateAssignment(groupKey,driverId);
+  if(!v.ok){ toast(v.msg,"danger"); return false; }
+  v.group.forEach(o=>{ o.status="ASSIGNED"; o.driverId=v.driver.id; o.driverName=v.driver.name; o.groupKey=groupKey; });
+  v.driver.status="BUSY"; v.driver.groupKey=groupKey; v.driver.orderIds=v.group.map(o=>o.id);
+  v.driver.lat=v.group[0].lat; v.driver.lng=v.group[0].lng;
+  await saveStore(STORE);
+  toast("Group <b>"+groupKey+"</b> assigned to "+v.driver.name+" ("+v.driver.id+")","success");
+  renderAll();
+  return true;
+}
+async function addToWaitingQueue(groupKey){
+  if(STORE.waitingQueue.some(w=>w.groupKey===groupKey)) return;
+  STORE.waitingQueue.push({groupKey,addedAt:Date.now()});
+  await saveStore(STORE);
+  toast("All drivers busy. Group <b>"+groupKey+"</b> added to waiting queue.","warning");
+  renderAll();
+}
+async function processWaitingQueue(){
+  if(STORE.waitingQueue.length===0) return;
+  const availableDriver=STORE.drivers.find(d=>d.status==="AVAILABLE");
+  if(!availableDriver) return;
+  const groups=groupOrdersByRoad();
+  const idx=STORE.waitingQueue.findIndex(w=>groups[w.groupKey]&&groups[w.groupKey].length>0);
+  if(idx===-1) return;
+  const next=STORE.waitingQueue.splice(idx,1)[0];
+  await assignOrderGroup(next.groupKey, availableDriver.id);
+}
+async function assignNextGroup(){
+  await refreshStore();
+  const groups=groupOrdersByRoad();
+  const keys=Object.keys(groups);
+  if(keys.length===0){ toast("No READY orders waiting for dispatch.","info"); return; }
+  const availableDriver=STORE.drivers.find(d=>d.status==="AVAILABLE");
+  const groupKey=keys[0];
+  if(!availableDriver){ await addToWaitingQueue(groupKey); return; }
+  await assignOrderGroup(groupKey, availableDriver.id);
+}
+async function completeDelivery(driverId){
+  await refreshStore();
+  const driver=STORE.drivers.find(d=>d.id===driverId);
+  if(!driver){ return; }
+  const orders=STORE.orders.filter(o=>o.driverId===driverId && (o.status==="OUT_FOR_DELIVERY"||o.status==="ASSIGNED"));
+  if(orders.length===0){ toast("No active orders for this driver.","warning"); return; }
+  orders.forEach(o=>o.status="DELIVERED");
+  driver.status="AVAILABLE"; driver.groupKey=null; driver.orderIds=[];
+  await saveStore(STORE);
+  toast(driver.name+" completed delivery and is now AVAILABLE","success");
+  await processWaitingQueue();
+  renderAll();
+}
+
+/* ---------- demo control helpers ---------- */
+async function demoGenerateOrder(){
+  await refreshStore();
+  const cust=STORE.customers[Math.floor(Math.random()*STORE.customers.length)];
+  const count=1+Math.floor(Math.random()*3);
+  const items=[];
+  while(items.length<count){
+    const f=FOOD_ITEMS[Math.floor(Math.random()*FOOD_ITEMS.length)].id;
+    if(!items.includes(f)) items.push(f);
+  }
+  await createOrder(cust.id, items);
+}
+async function demoStartPreparing(){
+  await refreshStore();
+  const o=STORE.orders.find(x=>x.status==="PENDING");
+  if(!o){ toast("No PENDING orders.","info"); return; }
+  await startPreparing(o.id);
+}
+async function demoMarkReady(){
+  await refreshStore();
+  const o=STORE.orders.find(x=>x.status==="PREPARING");
+  if(!o){ toast("No PREPARING orders.","info"); return; }
+  await markOrderReady(o.id);
+}
+async function demoCompleteDelivery(){
+  await refreshStore();
+  const driver=STORE.drivers.find(d=>d.status==="BUSY");
+  if(driver){ await completeDelivery(driver.id); return; }
+  toast("No busy drivers to complete.","info");
+}
+async function resetSimulation(){
+  STORE=freshStore();
+  await saveStore(STORE);
+  custPage=1;
+  toast("Simulation reset.","secondary");
+  renderAll();
+}
+
+/* ===================== Rendering ===================== */
+function renderAll(){
+  const r=STORE.restaurantStatus;
+  document.getElementById("mgrStatusBadge").className="badge-status "+r+" mt-2 d-inline-flex";
+  document.getElementById("mgrStatusBadge").innerHTML=`<i class="fa-solid ${r==='OPEN'?'fa-circle-check':'fa-circle-xmark'} me-1"></i> ${r}`;
+
+  const counts={
+    total:STORE.orders.length,
+    pending:STORE.orders.filter(o=>o.status==="PENDING").length,
+    preparing:STORE.orders.filter(o=>o.status==="PREPARING").length,
+    ready:STORE.orders.filter(o=>o.status==="READY").length,
+    waiting:STORE.waitingQueue.length,
+    assigned:STORE.orders.filter(o=>o.status==="ASSIGNED").length,
+    ofd:STORE.orders.filter(o=>o.status==="OUT_FOR_DELIVERY").length,
+    delivered:STORE.orders.filter(o=>o.status==="DELIVERED").length,
+    avail:STORE.drivers.filter(d=>d.status==="AVAILABLE").length,
+    busy:STORE.drivers.filter(d=>d.status==="BUSY").length
+  };
+  const stats=[
+    ["Total Orders",counts.total,""],["Pending",counts.pending,"yellow"],["Preparing",counts.preparing,"purple"],
+    ["Ready",counts.ready,"purple"],["Waiting Queue",counts.waiting,"yellow"],["Assigned",counts.assigned,"blue"],
+    ["Out for Delivery",counts.ofd,"orange"],["Delivered",counts.delivered,"green"],
+    ["Available Drivers",counts.avail,"green"],["Busy Drivers",counts.busy,"red"]
+  ];
+  document.getElementById("statGrid").innerHTML=stats.map(s=>`
+    <div class="col-6 col-md-4 col-lg-2"><div class="stat-card ${s[2]}"><div class="num">${s[1]}</div><div class="lbl">${s[0]}</div></div></div>`).join("");
+
+  const rows=STORE.orders.slice().reverse().slice(0,40).map(o=>{
+    let actionBtn="";
+    if(o.status==="PENDING") actionBtn=`<button class="btn btn-sm btn-outline-secondary" onclick="startPreparing('${o.id}')">Start Preparing</button>`;
+    else if(o.status==="PREPARING") actionBtn=`<button class="btn btn-sm btn-outline-primary" onclick="markOrderReady('${o.id}')">Mark Ready</button>`;
+    else actionBtn=`<span class="small-note">—</span>`;
+    return `<tr>
+      <td class="mono">${o.id}</td><td>${o.customerName}</td>
+      <td>${o.area}<br><span class="small-note">${o.road}</span></td>
+      <td class="small-note">${o.items.map(i=>i.name).join(", ")}</td>
+      <td><span class="badge-status ${o.status}">${o.status.replace(/_/g," ")}</span></td>
+      <td>${actionBtn}</td>
+    </tr>`;
+  }).join("");
+  document.getElementById("incomingOrdersBody").innerHTML=rows||`<tr><td colspan="6" class="small-note text-center py-3">No orders yet — use Generate Order.</td></tr>`;
+
+  const groups=groupOrdersByRoad();
+  const gKeys=Object.keys(groups);
+  const availDrivers=STORE.drivers.filter(d=>d.status==="AVAILABLE");
+  document.getElementById("groupedOrders").innerHTML=gKeys.length?gKeys.map(key=>{
+    const g=groups[key];
+    const driverOptions=availDrivers.map(d=>`<option value="${d.id}">${d.id} — ${d.name}</option>`).join("");
+    return `<div class="driver-chip flex-column align-items-stretch">
+      <div class="d-flex justify-content-between"><b>${key}</b><span class="badge-status READY">${g.length} order(s)</span></div>
+      <div class="small-note mb-2">${g.map(o=>o.id).join(", ")}</div>
+      <div class="input-group input-group-sm">
+        <select class="form-select" id="drv-${key.replace(/[^a-zA-Z0-9]/g,'')}">${driverOptions||'<option disabled selected>No drivers available</option>'}</select>
+        <button class="btn btn-brand" ${availDrivers.length===0?'disabled':''} onclick="manualAssign('${key}')">Assign</button>
+      </div>
+    </div>`;
+  }).join(""):`<p class="small-note">No groups ready for dispatch.</p>`;
+
+  document.getElementById("waitingQueueBox").innerHTML=STORE.waitingQueue.length?
+    STORE.waitingQueue.map((w,i)=>`<div class="driver-chip"><span>${i+1}. ${w.groupKey}</span><span class="badge-status WAITING">WAITING</span></div>`).join("")
+    :`<p class="small-note">Queue is empty.</p>`;
+
+  document.getElementById("fleetCount").textContent=STORE.drivers.length;
+  document.getElementById("fleetBody").innerHTML=STORE.drivers.map(d=>`
+    <tr><td class="mono">${d.id}</td><td>${d.name}</td><td><span class="badge-status ${d.status}">${d.status}</span></td>
+    <td class="small-note">${d.groupKey||"—"}</td><td class="small-note">${d.orderIds.length?d.orderIds.join(", "):"—"}</td></tr>`).join("");
+
+  document.getElementById("custCount").textContent=STORE.customers.length;
+  renderCustomerTable();
+  updateManagerMap();
+}
+function manualAssign(groupKey){
+  const safeId="drv-"+groupKey.replace(/[^a-zA-Z0-9]/g,'');
+  const sel=document.getElementById(safeId);
+  if(!sel||!sel.value){ toast("No available driver selected.","danger"); return; }
+  assignOrderGroup(groupKey, sel.value);
+}
+function renderCustomerTable(){
+  const q=(document.getElementById("custQ").value||"").toLowerCase();
+  const areaF=document.getElementById("custAreaFilter").value;
+  let filtered=STORE.customers.filter(c=>{
+    const matchQ=!q||c.id.toLowerCase().includes(q)||c.name.toLowerCase().includes(q)||c.email.toLowerCase().includes(q);
+    const matchA=!areaF||c.area===areaF;
+    return matchQ&&matchA;
+  });
+  const totalPages=Math.max(1,Math.ceil(filtered.length/custPerPage));
+  if(custPage>totalPages) custPage=totalPages;
+  const start=(custPage-1)*custPerPage;
+  const pageRows=filtered.slice(start,start+custPerPage);
+  document.getElementById("custTableBody").innerHTML=pageRows.map(c=>{
+    const orderCount=STORE.orders.filter(o=>o.customerId===c.id).length;
+    return `<tr><td class="mono">${c.id}</td><td>${c.name}</td><td class="small-note">${c.email}</td><td>${c.area}</td><td class="small-note">${c.road}</td><td>${orderCount}</td></tr>`;
+  }).join("")||`<tr><td colspan="6" class="text-center small-note py-3">No customers match.</td></tr>`;
+  document.getElementById("custPageInfo").textContent=`Page ${custPage} of ${totalPages} · ${filtered.length} customers`;
+}
+
+/* ---------- Map ---------- */
+function statusColor(status){
+  switch(status){
+    case "AVAILABLE": case "DELIVERED": return "#1E8E5A";
+    case "BUSY": case "CANCELLED": return "#D64545";
+    case "PENDING": case "WAITING": case "READY": return "#C9911A";
+    case "ASSIGNED": return "#2563EB";
+    case "OUT_FOR_DELIVERY": return "#EA7317";
+    case "PREPARING": return "#7C4DFF";
+    default: return "#6b5f57";
+  }
+}
+function dotIcon(color,big){
+  return L.divIcon({className:"",html:`<div style="width:${big?20:14}px;height:${big?20:14}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 0 2px ${color}55;"></div>`,iconSize:[big?20:14,big?20:14]});
+}
+function initMap(){
+  managerMap=L.map('managerMap',{scrollWheelZoom:false}).setView([RESTAURANT.lat,RESTAURANT.lng],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(managerMap);
+  mgrMarkers.restaurant=L.marker([RESTAURANT.lat,RESTAURANT.lng],{icon:dotIcon("#651C22",true)}).addTo(managerMap).bindPopup("<b>"+RESTAURANT.name+"</b><br>Restaurant");
+}
+function updateManagerMap(){
+  if(!managerMap) return;
+  Object.values(mgrMarkers.drivers).forEach(m=>managerMap.removeLayer(m));
+  mgrMarkers.drivers={};
+  STORE.drivers.forEach(d=>{
+    const m=L.marker([d.lat,d.lng],{icon:dotIcon(statusColor(d.status))}).addTo(managerMap).bindPopup(`<b>${d.name}</b> (${d.id})<br>${d.status}`);
+    mgrMarkers.drivers[d.id]=m;
+  });
+  Object.values(mgrMarkers.orders).forEach(m=>managerMap.removeLayer(m));
+  mgrMarkers.orders={};
+  STORE.orders.filter(o=>o.status==="READY"||o.status==="ASSIGNED"||o.status==="OUT_FOR_DELIVERY").forEach(o=>{
+    const m=L.marker([o.lat,o.lng],{icon:dotIcon(statusColor(o.status))}).addTo(managerMap).bindPopup(`<b>${o.id}</b><br>${o.customerName}<br>${o.status.replace(/_/g," ")}`);
+    mgrMarkers.orders[o.id]=m;
+  });
+}
+
+/* ===================== Auth ===================== */
+document.getElementById('showMgrCreds').addEventListener('click', e=>{
+  e.preventDefault();
+  const box=document.getElementById('credsBox');
+  box.classList.remove('d-none');
+  box.innerHTML=`Manager ID: <b>${MANAGER.id}</b><br>Password: <b>${MANAGER.password}</b>`;
+});
+document.getElementById('btnMgrLogin').addEventListener('click', async ()=>{
+  const id=document.getElementById('loginMgrId').value.trim().toUpperCase();
+  const pass=document.getElementById('loginMgrPass').value;
+  const err=document.getElementById('mgrLoginErr');
+  if(id!==MANAGER.id||pass!==MANAGER.password){ err.textContent="Invalid manager ID or password."; return; }
+  err.textContent="";
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  checkManagerDevice();
+  buildAreaFilter();
+  initMap();
+  renderAll();
+  toast("Welcome, "+MANAGER.name+"!","success");
+  startPolling();
+});
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  stopPolling();
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('loginMgrId').value='';
+  document.getElementById('loginMgrPass').value='';
+  document.getElementById('credsBox').classList.add('d-none');
+});
+document.getElementById('mgrBypass').addEventListener('click', ()=>{
+  mgrBypass=true;
+  document.getElementById('managerDeviceBlock').classList.add('d-none');
+  document.getElementById('managerContent').classList.remove('d-none');
+});
+
+function buildAreaFilter(){
+  const filter=document.getElementById("custAreaFilter");
+  filter.innerHTML=`<option value="">All areas</option>`+Object.keys(PUNE_AREAS).map(a=>`<option value="${a}">${a}</option>`).join("");
+}
+
+/* ===================== Events ===================== */
+document.getElementById("btnOpenRest").addEventListener("click", openRestaurant);
+document.getElementById("btnCloseRest").addEventListener("click", closeRestaurant);
+document.getElementById("btnGenOrder").addEventListener("click", demoGenerateOrder);
+document.getElementById("btnStartPrep").addEventListener("click", demoStartPreparing);
+document.getElementById("btnMarkReady").addEventListener("click", demoMarkReady);
+document.getElementById("btnAssignNext").addEventListener("click", assignNextGroup);
+document.getElementById("btnCompleteDelivery").addEventListener("click", demoCompleteDelivery);
+document.getElementById("btnReset").addEventListener("click", resetSimulation);
+document.getElementById("custQ").addEventListener("input", ()=>{ custPage=1; renderCustomerTable(); });
+document.getElementById("custAreaFilter").addEventListener("change", ()=>{ custPage=1; renderCustomerTable(); });
+document.getElementById("custPrev").addEventListener("click", ()=>{ if(custPage>1){custPage--; renderCustomerTable();} });
+document.getElementById("custNext").addEventListener("click", ()=>{ custPage++; renderCustomerTable(); });
+
+/* ===================== Polling for live updates ===================== */
+let pollTimer=null;
+function startPolling(){
+  stopPolling();
+  pollTimer=setInterval(async ()=>{ await refreshStore(); renderAll(); }, 4000);
+}
+function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
+
+/* ===================== Init ===================== */
+(async function init(){
+  STORE = await loadStore();
+})();
+</script>
+</body>
+</html>

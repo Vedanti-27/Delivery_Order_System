@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spice Hub Express — Order Food</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --maroon:#651C22; --maroon-dark:#4A1319; --saffron:#E7A93C; --saffron-dark:#C98A22;
+  --cream:#FBF6EC; --card:#FFFFFF; --ink:#2B211C; --ink-soft:#6b5f57; --line:#E9DFCF; --teal:#1F6F6F;
+  --st-green:#1E8E5A; --st-red:#D64545; --st-yellow:#C9911A; --st-blue:#2563EB; --st-orange:#EA7317; --st-purple:#7C4DFF;
+}
+*{box-sizing:border-box;}
+body{background:var(--cream);color:var(--ink);font-family:'Inter',sans-serif;padding-bottom:60px;}
+h1,h2,h3,h4,.display-font{font-family:'Fraunces',serif;color:var(--maroon-dark);}
+.mono{font-family:'JetBrains Mono',monospace;}
+.topbar{background:linear-gradient(120deg,var(--maroon) 0%,var(--maroon-dark) 100%);color:#fff;padding:14px 24px;position:sticky;top:0;z-index:1000;box-shadow:0 4px 18px rgba(0,0,0,.18);}
+.topbar .brand{font-family:'Fraunces',serif;font-weight:700;font-size:1.35rem;display:flex;align-items:center;gap:10px;}
+.brand .fa-pepper-hot{color:var(--saffron);}
+.status-pill{border-radius:30px;padding:6px 16px;font-weight:700;font-size:.82rem;letter-spacing:.03em;display:inline-flex;align-items:center;gap:6px;}
+.status-pill.open{background:rgba(30,142,90,.18);color:#9be8bf;border:1px solid rgba(30,142,90,.5);}
+.status-pill.closed{background:rgba(214,69,69,.18);color:#ffb3b3;border:1px solid rgba(214,69,69,.5);}
+.section-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:22px;box-shadow:0 2px 10px rgba(101,28,34,.05);}
+.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;font-weight:700;color:var(--teal);margin-bottom:4px;}
+.badge-status{border-radius:20px;padding:5px 12px;font-weight:700;font-size:.72rem;letter-spacing:.03em;display:inline-flex;align-items:center;gap:5px;}
+.badge-status.PENDING,.badge-status.WAITING{background:#FCEFD2;color:var(--st-yellow);}
+.badge-status.PREPARING,.badge-status.READY{background:#EDE6FF;color:var(--st-purple);}
+.badge-status.ASSIGNED{background:#DCE7FF;color:var(--st-blue);}
+.badge-status.OUT_FOR_DELIVERY{background:#FDE6D2;color:var(--st-orange);}
+.badge-status.DELIVERED{background:#DCF3E6;color:var(--st-green);}
+.badge-status.CANCELLED{background:#FBE0E0;color:var(--st-red);}
+.badge-status.OPEN{background:#DCF3E6;color:var(--st-green);}
+.badge-status.CLOSED{background:#FBE0E0;color:var(--st-red);}
+.trail{display:flex;align-items:center;margin:22px 0 8px;}
+.trail .stop{flex:1;text-align:center;position:relative;}
+.trail .stop .dot{width:34px;height:34px;border-radius:50%;background:#fff;border:3px solid var(--line);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:.85rem;color:#b9ab9b;position:relative;z-index:2;transition:.2s;}
+.trail .stop .rd{position:absolute;top:16px;left:-50%;width:100%;height:4px;background:var(--line);z-index:1;}
+.trail .stop:first-child .rd{display:none;}
+.trail .stop.done .dot{background:var(--st-green);border-color:var(--st-green);color:#fff;}
+.trail .stop.done .rd{background:var(--st-green);}
+.trail .stop.current .dot{background:var(--saffron);border-color:var(--saffron-dark);color:#fff;box-shadow:0 0 0 5px rgba(231,169,60,.25);}
+.trail .stop .lbl{font-size:.72rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;}
+.trail .stop.current .lbl,.trail .stop.done .lbl{color:var(--maroon-dark);}
+.order-msg{background:#FBF0DB;border:1px dashed var(--saffron-dark);border-radius:10px;padding:10px 14px;font-weight:600;color:var(--maroon-dark);font-size:.92rem;}
+.order-card{border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;background:#fff;border-top:4px solid var(--saffron);}
+.order-card .oid{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--maroon-dark);}
+.btn-brand{background:var(--maroon);border-color:var(--maroon);color:#fff;font-weight:600;}
+.btn-brand:hover{background:var(--maroon-dark);border-color:var(--maroon-dark);color:#fff;}
+.food-check{border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.food-check label{font-weight:600;font-size:.88rem;margin:0;}
+.food-check .price{color:var(--ink-soft);font-size:.82rem;}
+.small-note{font-size:.76rem;color:var(--ink-soft);}
+#toastHost{position:fixed;top:80px;right:18px;z-index:2000;width:320px;}
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--maroon) 0%,var(--maroon-dark) 55%,#2c0d10 100%);padding:24px;}
+.auth-card{background:#fff;border-radius:20px;padding:32px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.auth-brand{font-family:'Fraunces',serif;font-weight:700;font-size:1.4rem;color:var(--maroon-dark);display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.auth-brand .fa-pepper-hot{color:var(--saffron-dark);}
+.auth-sub{color:var(--ink-soft);font-size:.9rem;margin-bottom:20px;}
+.auth-error{color:var(--st-red);font-size:.82rem;min-height:18px;margin-top:6px;}
+.auth-hint{font-size:.78rem;color:var(--ink-soft);margin-top:8px;}
+.auth-hint a{color:var(--teal);cursor:pointer;}
+.creds-box{margin-top:14px;background:var(--cream);border:1px dashed var(--saffron-dark);border-radius:10px;padding:10px 12px;font-size:.82rem;color:var(--maroon-dark);}
+.view-mode-toggle .btn.active{background:var(--maroon);color:#fff;border-color:var(--maroon);}
+#customerContentWrap.mobile-frame{max-width:390px;margin:0 auto;border:10px solid #2B211C;border-radius:34px;padding:16px 12px;background:var(--cream);box-shadow:0 12px 30px rgba(0,0,0,.25);}
+#customerContentWrap.mobile-frame .row>div{width:100%;max-width:100%;flex:0 0 100%;}
+body.dark-theme{background:#181210;color:#EFE7DD;}
+body.dark-theme .section-card,body.dark-theme .order-card{background:#241C18;border-color:#3A2E27;color:#EFE7DD;}
+body.dark-theme h1,body.dark-theme h2,body.dark-theme h3,body.dark-theme h4{color:#F3D9A6;}
+body.dark-theme .eyebrow{color:#57C7C7;}
+body.dark-theme .small-note{color:#B9AC9F;}
+body.dark-theme .form-control,body.dark-theme .form-select{background:#2C221D;border-color:#453830;color:#EFE7DD;}
+body.dark-theme .form-control[readonly]{background:#241C18;}
+body.dark-theme .order-msg{background:#332619;border-color:var(--saffron);color:#F3D9A6;}
+body.dark-theme .food-check{background:#241C18;border-color:#3A2E27;}
+body.dark-theme #customerContentWrap.mobile-frame{background:#181210;}
+</style>
+</head>
+<body>
+
+<div class="auth-wrap" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-brand"><i class="fa-solid fa-pepper-hot"></i> Spice Hub Express</div>
+    <p class="auth-sub">Customer sign in</p>
+    <label class="form-label fw-semibold">Email address</label>
+    <input type="email" id="loginCustEmail" class="form-control mb-2" placeholder="you@example.com">
+    <button class="btn btn-brand w-100" id="btnCustLogin"><i class="fa-solid fa-right-to-bracket me-1"></i>Continue</button>
+    <div class="auth-error" id="custLoginErr"></div>
+    <div class="auth-hint">No password needed — just the email on your Spice Hub profile. <a id="showCustSample">See a sample email</a></div>
+    <div id="credsBox" class="creds-box d-none"></div>
+  </div>
+</div>
+
+<div id="mainApp" style="display:none;">
+<div class="topbar d-flex align-items-center justify-content-between flex-wrap gap-2">
+  <div class="brand"><i class="fa-solid fa-pepper-hot"></i> Spice Hub Express</div>
+  <div class="d-flex align-items-center gap-2">
+    <button id="darkToggleBtn" class="btn btn-sm btn-outline-light" title="Toggle day/night theme"><i class="fa-solid fa-moon"></i></button>
+    <button id="logoutBtn" class="btn btn-sm btn-outline-light"><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</button>
+  </div>
+  <div id="topRestaurantPill" class="status-pill open"></div>
+</div>
+<div id="toastHost"></div>
+
+<div id="customerContentWrap" class="p-3 p-md-4">
+  <div class="d-flex justify-content-end mb-2 view-mode-toggle">
+    <div class="btn-group btn-group-sm">
+      <button class="btn btn-outline-secondary active" data-mode="desktop"><i class="fa-solid fa-desktop me-1"></i>Desktop</button>
+      <button class="btn btn-outline-secondary" data-mode="mobile"><i class="fa-solid fa-mobile-screen-button me-1"></i>Mobile</button>
+    </div>
+  </div>
+
+  <div id="restaurantBanner" class="section-card d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div><div class="eyebrow">Spice Hub Central Kitchen · Shivajinagar, Pune</div><h3 class="mb-0">Order fresh, track live</h3></div>
+    <div id="bannerStatus"></div>
+  </div>
+
+  <div class="section-card" id="custIdentityCard"></div>
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="section-card">
+        <div class="eyebrow">Place an order</div>
+        <h4 class="mb-3">Delivery details</h4>
+        <div class="row g-2 mb-3">
+          <div class="col-6"><label class="form-label fw-semibold">Delivery Area</label><select id="orderArea" class="form-select"></select></div>
+          <div class="col-6"><label class="form-label fw-semibold">Road / Zone</label><select id="orderRoad" class="form-select"></select></div>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6"><label class="form-label fw-semibold small-note">Latitude</label><input id="orderLat" class="form-control mono" readonly></div>
+          <div class="col-6"><label class="form-label fw-semibold small-note">Longitude</label><input id="orderLng" class="form-control mono" readonly></div>
+        </div>
+        <label class="form-label fw-semibold">Choose food items</label>
+        <div id="foodList" class="mb-3"></div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="fw-semibold">Total</span><span class="fs-5 fw-bold" id="orderTotal">₹0</span>
+        </div>
+        <button class="btn btn-brand w-100" id="placeOrderBtn" disabled><i class="fa-solid fa-bag-shopping me-1"></i> Place Order</button>
+        <div id="closedNotice" class="order-msg mt-3 d-none" style="border-color:var(--st-red);color:var(--st-red);">
+          <i class="fa-solid fa-circle-exclamation me-1"></i> Restaurant is currently closed.
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="section-card">
+        <div class="eyebrow">Live tracking</div>
+        <h4 class="mb-3">My Orders</h4>
+        <div id="myOrders"><p class="small-note">Place an order to see live tracking here.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ===================== Shared constants ===================== */
+const STORE_KEY = "spicehub_store";
+const PUNE_AREAS = {
+  "Hinjewadi":{lat:18.5250,lng:73.8570,roads:["Phase 1 Road","Phase 2 Road","Wakad Link Road"]},
+  "Baner":{lat:18.5298,lng:73.8689,roads:["Baner Road","Sus Road","High Street Rd"]},
+  "Pimpri":{lat:18.5252,lng:73.8528,roads:["Old Mumbai Road","PCMC Chowk Rd"]},
+  "Hadapsar":{lat:18.5248,lng:73.8624,roads:["Solapur Road","Magarpatta Road"]},
+  "Kothrud":{lat:18.5134,lng:73.8541,roads:["Karve Road","Paud Road","DP Road"]},
+  "Shivajinagar":{lat:18.5225,lng:73.8614,roads:["FC Road","JM Road","Ghole Road"]},
+  "Viman Nagar":{lat:18.5260,lng:73.8594,roads:["Viman Nagar Road","Airport Road"]},
+  "Wagholi":{lat:18.5480,lng:73.8517,roads:["Nagar Road","Kesnand Road"]},
+  "Kharadi":{lat:18.5246,lng:73.8513,roads:["Kharadi Bypass","EON Road"]},
+  "Aundh":{lat:18.5176,lng:73.8531,roads:["Aundh Road","ITI Road"]}
+};
+const FOOD_ITEMS=[
+ {id:"pizza",name:"Pizza (Margherita)",price:293},{id:"burger",name:"Burger (Classic)",price:288},
+ {id:"fchicken",name:"Fried Chicken",price:268},{id:"koshary",name:"Koshary Special",price:261},
+ {id:"pasta",name:"Pasta (Penne)",price:229},{id:"salad",name:"Salad (Fresh Garden)",price:274},
+ {id:"sandwich",name:"Club Sandwich",price:235},{id:"shawarma",name:"Shawarma Special",price:270},
+ {id:"sushi",name:"Sushi Roll",price:273},{id:"paneer",name:"Paneer Tikka",price:219},
+ {id:"vbir",name:"Veg Biryani",price:189},{id:"cbir",name:"Chicken Biryani",price:239},
+ {id:"idli",name:"Idli Sambhar",price:149},{id:"dosa",name:"Masala Dosa",price:179},
+ {id:"vpulao",name:"Veg Pulao",price:199},{id:"dal",name:"Dal Tadka",price:179},
+ {id:"chole",name:"Chole Bhature",price:209},{id:"momos",name:"Veg Momos",price:159},
+ {id:"cmomos",name:"Chicken Momos",price:189},{id:"tikka",name:"Chicken Tikka",price:289},
+ {id:"kebab",name:"Seekh Kebab",price:299},{id:"fish",name:"Fish Curry",price:309},
+ {id:"prawns",name:"Prawn Masala",price:329},{id:"noodles",name:"Veg Hakka Noodles",price:189},
+ {id:"manchurian",name:"Veg Manchurian",price:199},{id:"friedrice",name:"Chicken Fried Rice",price:219},
+ {id:"softdrink",name:"Soft Drink",price:60},{id:"lassi",name:"Sweet Lassi",price:89},
+ {id:"gulab",name:"Gulab Jamun (2 pc)",price:79},{id:"icecream",name:"Ice Cream Sundae",price:129},
+ {id:"thali",name:"Spice Hub Thali",price:349}
+];
+const FIRST_NAMES=["Aarav","Vivaan","Aditya","Ishaan","Reyansh","Krishna","Arjun","Sai","Rohan","Kabir","Aanya","Diya","Myra","Anika","Ira","Saanvi","Aadhya","Kiara","Riya","Prisha","Rahul","Sanjay","Vikram","Aditi","Neha","Pooja","Meera","Kavya","Rutuja","Sneha"];
+const LAST_NAMES=["Sharma","Patil","Deshmukh","Kulkarni","Joshi","Kale","Bhosale","Pawar","Gaikwad","Shinde"];
+const DRIVER_NAMES=["Rajesh Pawar","Suresh Jadhav","Mahesh Kale","Ganesh Shinde","Vikas Bhosale","Ramesh Gaikwad","Ajay Kulkarni","Sandeep Deshmukh","Prakash Salunkhe","Dinesh Chavan"];
+const RESTAURANT={name:"Spice Hub Central Kitchen",area:"Shivajinagar",lat:18.5204,lng:73.8567};
+const STEP_ORDER=["PENDING","PREPARING","ASSIGNED","OUT_FOR_DELIVERY","DELIVERED"];
+const CUSTOMER_COUNT=250;
+
+function roadCoord(area,road){
+  const base=PUNE_AREAS[area]||PUNE_AREAS["Shivajinagar"];
+  const idx=base.roads.indexOf(road);
+  const lat=base.lat+(idx*0.0016)-0.0009+(Math.random()-0.5)*0.0009;
+  const lng=base.lng+(idx*0.0016)-0.0009+(Math.random()-0.5)*0.0009;
+  return {lat:+lat.toFixed(4),lng:+lng.toFixed(4)};
+}
+function pad(n,w){return String(n).padStart(w,"0");}
+function fmtTime(d){return new Date(d).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}
+function money(n){return "₹"+Math.round(n);}
+function groupKeyOf(area,road){return area+" | "+road;}
+
+function generateCustomers(){
+  const areaKeys=Object.keys(PUNE_AREAS); const list=[];
+  for(let i=1;i<=CUSTOMER_COUNT;i++){
+    const area=areaKeys[Math.floor(Math.random()*areaKeys.length)];
+    const roads=PUNE_AREAS[area].roads;
+    const road=roads[Math.floor(Math.random()*roads.length)];
+    const coord=roadCoord(area,road);
+    const fn=FIRST_NAMES[Math.floor(Math.random()*FIRST_NAMES.length)];
+    const ln=LAST_NAMES[Math.floor(Math.random()*LAST_NAMES.length)];
+    const idNum=Math.floor(1000+Math.random()*8999);
+    const email=(fn+"."+ln+idNum).toLowerCase()+"@example.com";
+    list.push({id:"U"+idNum,name:fn+" "+ln,email,area,road,lat:coord.lat,lng:coord.lng,phone:"98"+Math.floor(10000000+Math.random()*89999999)});
+  }
+  return list;
+}
+function generateDrivers(){
+  return DRIVER_NAMES.map((n,i)=>({id:"D"+pad(i+1,2),name:n,status:"AVAILABLE",groupKey:null,orderIds:[],
+    lat:RESTAURANT.lat+(Math.random()-0.5)*0.01, lng:RESTAURANT.lng+(Math.random()-0.5)*0.01}));
+}
+function freshStore(){
+  return {restaurantStatus:"OPEN",customers:generateCustomers(),drivers:generateDrivers(),orders:[],waitingQueue:[],orderCounter:1};
+}
+
+/* ===================== Persistent shared storage ===================== */
+async function loadStore(){
+  try{
+    const res = await window.storage.get(STORE_KEY, true);
+    if(res && res.value) return JSON.parse(res.value);
+  }catch(e){ /* not found yet */ }
+  const init = freshStore();
+  try{ await window.storage.set(STORE_KEY, JSON.stringify(init), true); }catch(e){ console.error(e); }
+  return init;
+}
+async function saveStore(store){
+  try{ await window.storage.set(STORE_KEY, JSON.stringify(store), true); }catch(e){ console.error("Storage error", e); }
+}
+
+let STORE = null;
+let currentCustomerId = null;
+
+function toast(msg,type){
+  type=type||"info";
+  const map={success:"success",danger:"danger",warning:"warning",info:"primary"};
+  const el=document.createElement("div");
+  el.className="toast align-items-center text-bg-"+(map[type]||"primary")+" border-0 mb-2";
+  el.setAttribute("role","alert");
+  el.innerHTML=`<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+  document.getElementById("toastHost").appendChild(el);
+  const t=new bootstrap.Toast(el,{delay:3200}); t.show();
+  el.addEventListener("hidden.bs.toast",()=>el.remove());
+}
+
+/* ===================== Rendering ===================== */
+function buildAreaSelects(){
+  const areaKeys=Object.keys(PUNE_AREAS);
+  document.getElementById("orderArea").innerHTML=areaKeys.map(a=>`<option value="${a}">${a}</option>`).join("");
+}
+function populateRoads(area){
+  const roadSel=document.getElementById("orderRoad");
+  const roads=PUNE_AREAS[area]?PUNE_AREAS[area].roads:[];
+  roadSel.innerHTML=roads.map(r=>`<option value="${r}">${r}</option>`).join("");
+  updateLatLngDisplay();
+}
+function updateLatLngDisplay(){
+  const area=document.getElementById("orderArea").value, road=document.getElementById("orderRoad").value;
+  if(!area||!road) return;
+  const c=roadCoord(area,road);
+  document.getElementById("orderLat").value=c.lat;
+  document.getElementById("orderLng").value=c.lng;
+}
+function buildFoodList(){
+  const box=document.getElementById("foodList");
+  box.innerHTML=FOOD_ITEMS.map(f=>`
+    <div class="food-check">
+      <div><input class="form-check-input me-2 food-cb" type="checkbox" value="${f.id}" id="fi-${f.id}"><label for="fi-${f.id}">${f.name}</label></div>
+      <span class="price">${money(f.price)}</span>
+    </div>`).join("");
+  box.querySelectorAll(".food-cb").forEach(cb=>cb.addEventListener("change",updateOrderTotal));
+}
+function updateOrderTotal(){
+  let total=0;
+  document.querySelectorAll(".food-cb:checked").forEach(cb=>{
+    const item=FOOD_ITEMS.find(f=>f.id===cb.value);
+    if(item) total+=item.price;
+  });
+  document.getElementById("orderTotal").textContent=money(total);
+  const btn=document.getElementById("placeOrderBtn");
+  btn.disabled=!(STORE.restaurantStatus==="OPEN" && currentCustomerId && total>0);
+}
+function initCustomerOrderForm(){
+  const cust=STORE.customers.find(c=>c.id===currentCustomerId);
+  if(!cust) return;
+  document.getElementById("orderArea").value=cust.area;
+  populateRoads(cust.area);
+  document.getElementById("orderRoad").value=cust.road;
+  updateLatLngDisplay();
+}
+function stepIndexOf(status){ if(status==="READY") return 1; return STEP_ORDER.indexOf(status); }
+function orderCardHtml(o){
+  const curIdx=stepIndexOf(o.status);
+  const steps=[
+    {key:"PENDING",label:"Placed",icon:"fa-receipt"},{key:"PREPARING",label:"Preparing",icon:"fa-fire-burner"},
+    {key:"ASSIGNED",label:"Assigned",icon:"fa-user-check"},{key:"OUT_FOR_DELIVERY",label:"Out for delivery",icon:"fa-motorcycle"},
+    {key:"DELIVERED",label:"Delivered",icon:"fa-box-open"}
+  ];
+  const trail=steps.map((s,i)=>{
+    let cls=""; if(i<curIdx) cls="done"; else if(i===curIdx) cls="current";
+    const icon=i<curIdx?"fa-check":s.icon;
+    return `<div class="stop ${cls}"><div class="rd"></div><div class="dot"><i class="fa-solid ${icon}"></i></div><div class="lbl">${s.label}</div></div>`;
+  }).join("");
+  const messages={PENDING:"Your order has been received by Spice Hub Central Kitchen.",PREPARING:"Your order is being prepared.",
+    READY:"Your order is ready and waiting for a driver to be assigned.",ASSIGNED:"Driver has been assigned.",
+    OUT_FOR_DELIVERY:"Your order is out for delivery.",DELIVERED:"Your order has been delivered.",CANCELLED:"Order was cancelled."};
+  const displayStatus=o.status==="READY"?"PREPARING":o.status;
+  const itemNames=o.items.map(i=>i.name).join(", ");
+  const restOpen=STORE.restaurantStatus==="OPEN";
+  return `
+  <div class="order-card">
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+      <div><span class="oid">${o.id}</span><div class="small-note">${RESTAURANT.name} · <span class="badge-status ${restOpen?'OPEN':'CLOSED'}" style="padding:2px 8px;font-size:.65rem;">${STORE.restaurantStatus}</span></div></div>
+      <span class="badge-status ${o.status}">${displayStatus.replace(/_/g," ")}</span>
+    </div>
+    <div class="mt-2 small-note">
+      <i class="fa-solid fa-bowl-food me-1"></i>${itemNames}<br>
+      <i class="fa-regular fa-clock me-1"></i>${fmtTime(o.time)} &nbsp; <i class="fa-solid fa-location-dot me-1"></i>${o.area}, ${o.road}<br>
+      ${o.driverName?`<i class="fa-solid fa-motorcycle me-1"></i>Driver: ${o.driverName} (${o.driverId})`:`<i class="fa-solid fa-motorcycle me-1"></i>Driver: not yet assigned`}
+    </div>
+    <div class="trail">${trail}</div>
+    <div class="order-msg mt-2"><i class="fa-solid fa-comment-dots me-1"></i>${messages[o.status]}</div>
+  </div>`;
+}
+function renderAll(){
+  const open=STORE.restaurantStatus==="OPEN";
+  document.getElementById("topRestaurantPill").className="status-pill "+(open?"open":"closed");
+  document.getElementById("topRestaurantPill").innerHTML=`<i class="fa-solid fa-circle" style="font-size:.5rem;"></i> RESTAURANT ${STORE.restaurantStatus}`;
+  document.getElementById("bannerStatus").innerHTML=`<span class="badge-status ${open?'OPEN':'CLOSED'}"><i class="fa-solid ${open?'fa-circle-check':'fa-circle-xmark'}"></i> ${STORE.restaurantStatus}</span>`;
+  document.getElementById("closedNotice").classList.toggle("d-none",open);
+  document.getElementById("orderArea").disabled=!open;
+  document.getElementById("orderRoad").disabled=!open;
+  updateOrderTotal();
+
+  const cust=STORE.customers.find(c=>c.id===currentCustomerId);
+  if(cust){
+    document.getElementById("custIdentityCard").innerHTML=`
+      <div class="eyebrow">Signed in as</div>
+      <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
+        <div><h5 class="mb-1">${cust.name}</h5><div class="small-note mono">${cust.id} · ${cust.email}</div></div>
+        <div class="small-note"><i class="fa-solid fa-location-dot me-1"></i>${cust.area}, ${cust.road}</div>
+      </div>`;
+  }
+  const box=document.getElementById("myOrders");
+  const mine=STORE.orders.filter(o=>o.customerId===currentCustomerId).slice().reverse();
+  box.innerHTML = mine.length===0
+    ? `<p class="small-note">No orders yet. Place your first order to see live tracking here.</p>`
+    : mine.map(orderCardHtml).join("");
+}
+
+/* ===================== Actions ===================== */
+async function placeOrder(itemIds){
+  await refreshStore();
+  if(STORE.restaurantStatus!=="OPEN"){ toast("Restaurant is currently closed. Order rejected.","danger"); return; }
+  const cust=STORE.customers.find(c=>c.id===currentCustomerId);
+  if(!cust){ toast("Session error — please log in again.","danger"); return; }
+  if(!itemIds||itemIds.length===0){ toast("Choose at least one food item.","danger"); return; }
+  const area=document.getElementById("orderArea").value||cust.area;
+  const road=document.getElementById("orderRoad").value||cust.road;
+  const coord=roadCoord(area,road);
+  const items=itemIds.map(id=>FOOD_ITEMS.find(f=>f.id===id));
+  const order={id:"ORD"+pad(STORE.orderCounter++,4),customerId:cust.id,customerName:cust.name,area,road,
+    lat:coord.lat,lng:coord.lng,items,time:Date.now(),status:"PENDING",driverId:null,driverName:null,groupKey:null};
+  STORE.orders.push(order);
+  await saveStore(STORE);
+  toast("Order placed! ID <b>"+order.id+"</b>","success");
+  renderAll();
+}
+async function refreshStore(){
+  try{
+    const res=await window.storage.get(STORE_KEY,true);
+    if(res && res.value) STORE=JSON.parse(res.value);
+  }catch(e){ /* keep existing */ }
+}
+
+/* ===================== Auth ===================== */
+document.getElementById('showCustSample').addEventListener('click', async e=>{
+  e.preventDefault();
+  await refreshStore();
+  const sample=STORE.customers[Math.floor(Math.random()*STORE.customers.length)];
+  const box=document.getElementById('credsBox');
+  box.classList.remove('d-none');
+  box.innerHTML=`Sample profile — ${sample.name} (${sample.id})<br>Email: <b>${sample.email}</b>`;
+});
+document.getElementById('btnCustLogin').addEventListener('click', async ()=>{
+  const email=document.getElementById('loginCustEmail').value.trim().toLowerCase();
+  const err=document.getElementById('custLoginErr');
+  if(!email){ err.textContent="Enter your email address."; return; }
+  await refreshStore();
+  const cust=STORE.customers.find(c=>c.email.toLowerCase()===email);
+  if(!cust){ err.textContent="No profile found with that email."; return; }
+  err.textContent="";
+  currentCustomerId=cust.id;
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  initCustomerOrderForm();
+  renderAll();
+  toast("Welcome back, "+cust.name+"!","success");
+  startPolling();
+});
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  currentCustomerId=null;
+  stopPolling();
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('loginCustEmail').value='';
+  document.getElementById('credsBox').classList.add('d-none');
+});
+document.getElementById('darkToggleBtn').addEventListener('click', ()=>{
+  document.body.classList.toggle('dark-theme');
+  const isDark=document.body.classList.contains('dark-theme');
+  document.getElementById('darkToggleBtn').querySelector('i').className=isDark?'fa-solid fa-sun':'fa-solid fa-moon';
+});
+document.querySelectorAll('.view-mode-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.view-mode-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('customerContentWrap').classList.toggle('mobile-frame', btn.dataset.mode==='mobile');
+  });
+});
+document.getElementById("orderArea").addEventListener("change", e=>populateRoads(e.target.value));
+document.getElementById("orderRoad").addEventListener("change", updateLatLngDisplay);
+document.getElementById("placeOrderBtn").addEventListener("click", async ()=>{
+  const ids=Array.from(document.querySelectorAll(".food-cb:checked")).map(cb=>cb.value);
+  await placeOrder(ids);
+  document.querySelectorAll(".food-cb:checked").forEach(cb=>cb.checked=false);
+  updateOrderTotal();
+});
+
+/* ===================== Polling for live updates ===================== */
+let pollTimer=null;
+function startPolling(){
+  stopPolling();
+  pollTimer=setInterval(async ()=>{ await refreshStore(); renderAll(); }, 4000);
+}
+function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
+
+/* ===================== Init ===================== */
+(async function init(){
+  STORE = await loadStore();
+  buildAreaSelects();
+  populateRoads(Object.keys(PUNE_AREAS)[0]);
+  buildFoodList();
+})();
+</script>
+</body>
+</html>

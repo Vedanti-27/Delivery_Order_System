@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environments and secrets
+venv/
+.venv/
+.env
+.env.*
+!.env.example
+
+# Tool and build output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
